@@ -3,11 +3,16 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TodoModule } from './todo/todo.module';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [
+     ConfigModule.forRoot({
+      isGlobal: true,   
+      envFilePath: '.env',
+    }),
+
     MongooseModule.forRoot(
-  "  process.env.MONGOURI"
-    ),
+      process.env.MONGODB_URI!),
     TodoModule
 
 

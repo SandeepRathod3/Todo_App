@@ -1,41 +1,67 @@
 import axios from "axios";
 
-const API_URL='http://localhost:3000/todos'
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
 
-export const getTodos= async()=>{
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  timeout: 10000, 
+});
+
+
+api.interceptors.request.use(
+  (config) => {
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor
+api.interceptors.response.use(
+  (response) => {
+    return response.data;
+  },
+  (error) => {
+    let message = "Something went wrong";
     
-   try {
-     const res= await axios.get(API_URL);
-     return res.data
-   } catch (error:any) {
-            throw new Error(error.response?.data?.message || "Something went wrong");
-
-   }
-}
-
-export const createTodo= async(data:any)=>{
-    try {
-        const res= await axios.post(API_URL,data);
-        return res.data
-    } catch (error:any) {
-        throw new Error(error.response?.data?.message || "Something went wrong");
+    if (error.response) {
+      const { data, status } = error.response;
+      message = data?.message || data?.error || `Server error (${status})`;
+      
+      if (status === 401) {
+        console.error("Unauthorized access");
+      } else if (status === 404) {
+        message = "Resource not found";
+      } else if (status === 500) {
+        message = "Internal server error";
+      }
+    } else if (error.request) {
+      message = "Network error. Please check your connection.";
+    } else {
+      message = error.message;
     }
-}
+    
+    return Promise.reject(new Error(message));
+  }
+);
 
-export const updateStatus= async(id:string, status:string)=>{
-     try {
-       const res= await axios.patch(`${API_URL}/${id}/status/${status}`);
-    return res.data
-    } catch (error:any) {
-        throw new Error(error.response?.data?.message || "Something went wrong");
-    }
-}
-export const deleteTodo= async(id:string)=>{
-   try {
-     const res= await axios.delete(`/${id}`);
-     return res.data
-   } catch (error:any) {
-            throw new Error(error.response?.data?.message || "Something went wrong");
+export const getTodos = async () => {
+  const response = await api.get("/todos");
+  return response.data;
+};
 
-   }
-}
+export const createTodo = async (data: any) => {
+  return api.post("/todos", data);
+};
+
+export const updateStatus = async (id: string, status: string) => {
+  return api.patch(`/todos/${id}`, { status });
+};
+
+export const deleteTodo = async (id: string) => {
+  return api.delete(`/todos/${id}`);
+};
